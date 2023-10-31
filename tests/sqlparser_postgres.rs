@@ -2052,6 +2052,102 @@ fn test_savepoint() {
     }
 }
 
+#[test]
+fn test_json() {
+    let sql = "SELECT params -> 'name' FROM events";
+    let select = pg().verified_only_select(sql);
+    assert_eq!(
+        SelectItem::UnnamedExpr(Expr::JsonAccess {
+            left: Box::new(Expr::Identifier(Ident::new("params"))),
+            operator: JsonOperator::Arrow,
+            right: Box::new(Expr::Value(Value::SingleQuotedString("name".to_string()))),
+        }),
+        select.projection[0]
+    );
+
+    let sql = "SELECT info -> 'items' -> 'product' FROM orders";
+    let select = pg().verified_only_select(sql);
+    assert_eq!(
+        SelectItem::UnnamedExpr(Expr::JsonAccess {
+            left: Box::new(Expr::JsonAccess {
+                left: Box::new(Expr::Identifier(Ident::new("info"))),
+                operator: JsonOperator::Arrow,
+                right: Box::new(Expr::Value(Value::SingleQuotedString("items".to_string()))),
+            }),
+            operator: JsonOperator::Arrow,
+            right: Box::new(Expr::Value(Value::SingleQuotedString(
+                "product".to_string()
+            ))),
+        }),
+        select.projection[0]
+    );
+
+    let sql = "SELECT params -> 'name' FROM events";
+    let select = pg().verified_only_select(sql);
+    assert_eq!(
+        SelectItem::UnnamedExpr(Expr::JsonAccess {
+            left: Box::new(Expr::Identifier(Ident::new("params"))),
+            operator: JsonOperator::Arrow,
+            right: Box::new(Expr::Value(Value::SingleQuotedString("name".to_string()))),
+        }),
+        select.projection[0]
+    );
+
+    let sql = "SELECT info -> 'items' -> 'product' -> 'color' FROM orders";
+    let select = pg().verified_only_select(sql);
+    assert_eq!(
+        SelectItem::UnnamedExpr(Expr::JsonAccess {
+            left: Box::new(Expr::JsonAccess {
+                left: Box::new(Expr::JsonAccess {
+                    left: Box::new(Expr::Identifier(Ident::new("info"))),
+                    operator: JsonOperator::Arrow,
+                    right: Box::new(Expr::Value(Value::SingleQuotedString("items".to_string()))),
+                }),
+                operator: JsonOperator::Arrow,
+                right: Box::new(Expr::Value(Value::SingleQuotedString(
+                    "product".to_string()
+                ))),
+            }),
+            operator: JsonOperator::Arrow,
+            right: Box::new(Expr::Value(Value::SingleQuotedString(
+                "color".to_string()
+            ))),
+        }),
+        select.projection[0]
+    );
+
+    // test access in the where clause
+    let sql = "SELECT * FROM json_table WHERE text(json -> 'b' -> 'c') = '3'";
+    let select = pg().verified_only_select(sql);
+    assert_eq!(
+        Expr::BinaryOp {
+            left: Box::new(Expr::Function(Function {
+                name: ObjectName(vec![Ident::new("text")]),
+                args: vec![FunctionArg::Unnamed(FunctionArgExpr::Expr(Expr::JsonAccess {
+                    left: Box::new(Expr::JsonAccess {
+                        left: Box::new(Expr::Identifier(Ident::new("json"))),
+                        operator: JsonOperator::Arrow,
+                        right: Box::new(Expr::Value(Value::SingleQuotedString(
+                            "b".to_string()
+                        ))),
+                    }),
+                    operator: JsonOperator::Arrow,
+                    right: Box::new(Expr::Value(Value::SingleQuotedString(
+                        "c".to_string()
+                    ))),
+                }))],
+                over: None,
+                distinct: false,
+                special: false,
+                order_by: vec![],
+            })),
+            op: BinaryOperator::Eq,
+            right: Box::new(Expr::Value(Value::SingleQuotedString("3".to_string()))),
+        },
+        select.selection.unwrap(),
+    );
+}
+
 // #[test]
 // fn test_json() {
 //     let sql = "SELECT params ->> 'name' FROM events";
@@ -2065,16 +2161,6 @@ fn test_savepoint() {
 //         select.projection[0]
 //     );
 //
-//     let sql = "SELECT params -> 'name' FROM events";
-//     let select = pg().verified_only_select(sql);
-//     assert_eq!(
-//         SelectItem::UnnamedExpr(Expr::JsonAccess {
-//             left: Box::new(Expr::Identifier(Ident::new("params"))),
-//             operator: JsonOperator::Arrow,
-//             right: Box::new(Expr::Value(Value::SingleQuotedString("name".to_string()))),
-//         }),
-//         select.projection[0]
-//     );
 //
 //     let sql = "SELECT info -> 'items' ->> 'product' FROM orders";
 //     let select = pg().verified_only_select(sql);
@@ -2184,92 +2270,6 @@ fn test_savepoint() {
 //         select.selection.unwrap(),
 //     );
 // }
-
-#[test]
-fn test_json() {
-    let sql = "SELECT info -> 'items' -> 'product' FROM orders";
-    let select = pg().verified_only_select(sql);
-    assert_eq!(
-        SelectItem::UnnamedExpr(Expr::JsonAccess {
-            left: Box::new(Expr::JsonAccess {
-                left: Box::new(Expr::Identifier(Ident::new("info"))),
-                operator: JsonOperator::Arrow,
-                right: Box::new(Expr::Value(Value::SingleQuotedString("items".to_string()))),
-            }),
-            operator: JsonOperator::Arrow,
-            right: Box::new(Expr::Value(Value::SingleQuotedString(
-                "product".to_string()
-            ))),
-        }),
-        select.projection[0]
-    );
-
-    let sql = "SELECT params -> 'name' FROM events";
-    let select = pg().verified_only_select(sql);
-    assert_eq!(
-        SelectItem::UnnamedExpr(Expr::JsonAccess {
-            left: Box::new(Expr::Identifier(Ident::new("params"))),
-            operator: JsonOperator::Arrow,
-            right: Box::new(Expr::Value(Value::SingleQuotedString("name".to_string()))),
-        }),
-        select.projection[0]
-    );
-
-    let sql = "SELECT info -> 'items' -> 'product' -> 'color' FROM orders";
-    let select = pg().verified_only_select(sql);
-    assert_eq!(
-        SelectItem::UnnamedExpr(Expr::JsonAccess {
-            left: Box::new(Expr::JsonAccess {
-                left: Box::new(Expr::JsonAccess {
-                    left: Box::new(Expr::Identifier(Ident::new("info"))),
-                    operator: JsonOperator::Arrow,
-                    right: Box::new(Expr::Value(Value::SingleQuotedString("items".to_string()))),
-                }),
-                operator: JsonOperator::Arrow,
-                right: Box::new(Expr::Value(Value::SingleQuotedString(
-                    "product".to_string()
-                ))),
-            }),
-            operator: JsonOperator::Arrow,
-            right: Box::new(Expr::Value(Value::SingleQuotedString(
-                "color".to_string()
-            ))),
-        }),
-        select.projection[0]
-    );
-
-    // test access in the where clause
-    let sql = "SELECT * FROM json_table WHERE text(json -> 'b' -> 'c') = '3'";
-    let select = pg().verified_only_select(sql);
-    assert_eq!(
-        Expr::BinaryOp {
-            left: Box::new(Expr::Function(Function {
-                name: ObjectName(vec![Ident::new("text")]),
-                args: vec![FunctionArg::Unnamed(FunctionArgExpr::Expr(Expr::JsonAccess {
-                    left: Box::new(Expr::JsonAccess {
-                        left: Box::new(Expr::Identifier(Ident::new("json"))),
-                        operator: JsonOperator::Arrow,
-                        right: Box::new(Expr::Value(Value::SingleQuotedString(
-                            "b".to_string()
-                        ))),
-                    }),
-                    operator: JsonOperator::Arrow,
-                    right: Box::new(Expr::Value(Value::SingleQuotedString(
-                        "c".to_string()
-                    ))),
-                }))],
-                over: None,
-                distinct: false,
-                special: false,
-                order_by: vec![],
-            })),
-            op: BinaryOperator::Eq,
-            right: Box::new(Expr::Value(Value::SingleQuotedString("3".to_string()))),
-        },
-        select.selection.unwrap(),
-    );
-
-}
 
 #[test]
 fn test_composite_value() {

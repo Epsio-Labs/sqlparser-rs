@@ -1994,7 +1994,6 @@ impl<'a> Parser<'a> {
         //TODO: support different types of operators
         while self.consume_token(&Token::Arrow) {
             let index = self.parse_prefix()?;
-
             indexes.push(index);
         }
         for i in 1..indexes.len() {
