@@ -2054,6 +2054,17 @@ fn test_savepoint() {
 
 #[test]
 fn test_json() {
+    let sql = "SELECT params ->> 'name' FROM events";
+    let select = pg().verified_only_select(sql);
+    assert_eq!(
+        SelectItem::UnnamedExpr(Expr::JsonAccess {
+            left: Box::new(Expr::Identifier(Ident::new("params"))),
+            operator: JsonOperator::LongArrow,
+            right: Box::new(Expr::Value(Value::SingleQuotedString("name".to_string()))),
+        }),
+        select.projection[0]
+    );
+
     let sql = "SELECT params -> 'name' FROM events";
     let select = pg().verified_only_select(sql);
     assert_eq!(
