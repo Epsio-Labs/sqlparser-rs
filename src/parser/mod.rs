@@ -1981,31 +1981,24 @@ impl<'a> Parser<'a> {
 
     pub fn parse_json_access(&mut self, base_expr: Expr, operation: JsonOperator) -> Result<Expr, ParserError> {
         debug!("Entering parse_json_access, expr {:?}, operation {:?}", base_expr, operation);
-        let index = self.parse_prefix()?;
-        debug!("index {:?}", index);
-        let mut indexes: Vec<Expr> = vec![index];
-        let mut json_accesses: Vec<Expr> = vec![
-            Expr::JsonAccess {
-                left: Box::new(base_expr),
-                operator: operation,
-                right: Box::new(indexes[0].clone()),
-            }
-        ];
+        let access_key = self.parse_prefix()?;
+        debug!("access_key {:?}", access_key);
+        let mut nested_access = Expr::JsonAccess {
+            left: Box::new(base_expr),
+            operator: operation,
+            right: Box::new(access_key),
+        };
+
         //TODO: support different types of operators
         while self.consume_token(&Token::Arrow) {
-            let index = self.parse_prefix()?;
-            indexes.push(index);
+            let access_key = self.parse_prefix()?;
+            nested_access = Expr::JsonAccess {
+                left: Box::new(nested_access.clone()),
+                operator: JsonOperator::Arrow,
+                right: Box::new(access_key),
+            };
         }
-        for i in 1..indexes.len() {
-            json_accesses.push(
-                Expr::JsonAccess {
-                    left: Box::new(json_accesses[i - 1].clone()),
-                    operator: JsonOperator::Arrow,
-                    right: Box::new(indexes[i].clone()),
-                }
-            );
-        }
-        Ok(json_accesses.pop().unwrap())
+        Ok(nested_access)
     }
 
     /// Parses the parens following the `[ NOT ] IN` operator
