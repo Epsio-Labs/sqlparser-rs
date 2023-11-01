@@ -1906,32 +1906,27 @@ impl<'a> Parser<'a> {
                 operator: JsonOperator::Colon,
                 right: Box::new(Expr::Value(self.parse_value()?)),
             })
-        } else if Token::Arrow == tok
-            || Token::LongArrow == tok
-            || Token::HashArrow == tok
-            || Token::HashLongArrow == tok
-            || Token::AtArrow == tok
-            || Token::ArrowAt == tok
-            || Token::HashMinus == tok
-            || Token::AtQuestion == tok
-            || Token::AtAt == tok
+        } else if let Some(operator) = Self::get_json_operator_from_token(&tok)
         {
-            let operator = match tok.token {
-                Token::Arrow => JsonOperator::Arrow,
-                Token::LongArrow => JsonOperator::LongArrow,
-                Token::HashArrow => JsonOperator::HashArrow,
-                Token::HashLongArrow => JsonOperator::HashLongArrow,
-                Token::AtArrow => JsonOperator::AtArrow,
-                Token::ArrowAt => JsonOperator::ArrowAt,
-                Token::HashMinus => JsonOperator::HashMinus,
-                Token::AtQuestion => JsonOperator::AtQuestion,
-                Token::AtAt => JsonOperator::AtAt,
-                _ => unreachable!(),
-            };
             return self.parse_json_access(expr, operator);
         } else {
             // Can only happen if `get_next_precedence` got out of sync with this function
             parser_err!(format!("No infix parser for token {:?}", tok.token))
+        }
+    }
+
+    fn get_json_operator_from_token(tok: &TokenWithLocation) -> Option<JsonOperator> {
+        match tok.token {
+            Token::Arrow => Some(JsonOperator::Arrow),
+            Token::LongArrow => Some(JsonOperator::LongArrow),
+            Token::HashArrow => Some(JsonOperator::HashArrow),
+            Token::HashLongArrow => Some(JsonOperator::HashLongArrow),
+            Token::AtArrow => Some(JsonOperator::AtArrow),
+            Token::ArrowAt => Some(JsonOperator::ArrowAt),
+            Token::HashMinus => Some(JsonOperator::HashMinus),
+            Token::AtQuestion => Some(JsonOperator::AtQuestion),
+            Token::AtAt => Some(JsonOperator::AtAt),
+            _ => None,
         }
     }
 
@@ -1979,6 +1974,7 @@ impl<'a> Parser<'a> {
         }
     }
 
+
     pub fn parse_json_access(&mut self, base_expr: Expr, operation: JsonOperator) -> Result<Expr, ParserError> {
         debug!("Entering parse_json_access, expr {:?}, operation {:?}", base_expr, operation);
         let access_key = self.parse_prefix()?;
@@ -1989,12 +1985,12 @@ impl<'a> Parser<'a> {
             right: Box::new(access_key),
         };
 
-        //TODO: support different types of operators
-        while self.consume_token(&Token::Arrow) {
+        while let Some(operation) = Self::get_json_operator_from_token(&self.peek_token()) {
+            self.next_token();
             let access_key = self.parse_prefix()?;
             nested_access = Expr::JsonAccess {
-                left: Box::new(nested_access.clone()),
-                operator: JsonOperator::Arrow,
+                left: Box::new(nested_access),
+                operator: operation,
                 right: Box::new(access_key),
             };
         }
