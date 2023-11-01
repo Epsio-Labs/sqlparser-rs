@@ -1906,7 +1906,7 @@ impl<'a> Parser<'a> {
                 operator: JsonOperator::Colon,
                 right: Box::new(Expr::Value(self.parse_value()?)),
             })
-        } else if let Some(operator) = Self::match_json_operator(&tok)
+        } else if let Some(operator) = Self::get_json_operator_from_token(&tok)
         {
             return self.parse_json_access(expr, operator);
         } else {
@@ -1915,7 +1915,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn match_json_operator(tok: &TokenWithLocation) -> Option<JsonOperator> {
+    fn get_json_operator_from_token(tok: &TokenWithLocation) -> Option<JsonOperator> {
         match tok.token {
             Token::Arrow => Some(JsonOperator::Arrow),
             Token::LongArrow => Some(JsonOperator::LongArrow),
@@ -1985,7 +1985,7 @@ impl<'a> Parser<'a> {
             right: Box::new(access_key),
         };
 
-        while let Some(operation) = Self::match_json_operator(&self.peek_token()) {
+        while let Some(operation) = Self::get_json_operator_from_token(&self.peek_token()) {
             self.next_token();
             let access_key = self.parse_prefix()?;
             nested_access = Expr::JsonAccess {
