@@ -2120,9 +2120,7 @@ fn test_json() {
                 ))),
             }),
             operator: JsonOperator::Arrow,
-            right: Box::new(Expr::Value(Value::SingleQuotedString(
-                "color".to_string()
-            ))),
+            right: Box::new(Expr::Value(Value::SingleQuotedString("color".to_string()))),
         }),
         select.projection[0]
     );
@@ -2134,19 +2132,19 @@ fn test_json() {
         Expr::BinaryOp {
             left: Box::new(Expr::Function(Function {
                 name: ObjectName(vec![Ident::new("text")]),
-                args: vec![FunctionArg::Unnamed(FunctionArgExpr::Expr(Expr::JsonAccess {
-                    left: Box::new(Expr::JsonAccess {
-                        left: Box::new(Expr::Identifier(Ident::new("json"))),
+                args: vec![FunctionArg::Unnamed(FunctionArgExpr::Expr(
+                    Expr::JsonAccess {
+                        left: Box::new(Expr::JsonAccess {
+                            left: Box::new(Expr::Identifier(Ident::new("json"))),
+                            operator: JsonOperator::Arrow,
+                            right: Box::new(Expr::Value(Value::SingleQuotedString(
+                                "b".to_string()
+                            ))),
+                        }),
                         operator: JsonOperator::Arrow,
-                        right: Box::new(Expr::Value(Value::SingleQuotedString(
-                            "b".to_string()
-                        ))),
-                    }),
-                    operator: JsonOperator::Arrow,
-                    right: Box::new(Expr::Value(Value::SingleQuotedString(
-                        "c".to_string()
-                    ))),
-                }))],
+                        right: Box::new(Expr::Value(Value::SingleQuotedString("c".to_string()))),
+                    }
+                ))],
                 over: None,
                 distinct: false,
                 special: false,
@@ -2266,7 +2264,6 @@ fn test_json() {
         select.selection.unwrap(),
     );
 }
-
 
 #[test]
 fn test_composite_value() {
