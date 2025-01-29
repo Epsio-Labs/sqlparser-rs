@@ -628,7 +628,26 @@ impl<'a> Parser<'a> {
         };
 
         self.index = index;
-        self.parse_expr().map(WildcardExpr::Expr)
+        let expr = self.parse_expr()?;
+        let expr: Expr = if self.dialect.supports_filter_during_aggregation()
+            && self.parse_keyword(Keyword::FILTER)
+        {
+            let i = self.index - 1;
+            if self.consume_token(&Token::LParen) && self.parse_keyword(Keyword::WHERE) {
+                let filter = self.parse_expr()?;
+                self.expect_token(&Token::RParen)?;
+                Expr::AggregateExpressionWithFilter {
+                    expr: Box::new(expr),
+                    filter: Box::new(filter),
+                }
+            } else {
+                self.index = i;
+                expr
+            }
+        } else {
+            expr
+        };
+        Ok(WildcardExpr::Expr(expr))
     }
 
     /// Parse a new expression
@@ -1906,8 +1925,7 @@ impl<'a> Parser<'a> {
                 operator: JsonOperator::Colon,
                 right: Box::new(Expr::Value(self.parse_value()?)),
             })
-        } else if let Some(operator) = Self::get_json_operator_from_token(&tok)
-        {
+        } else if let Some(operator) = Self::get_json_operator_from_token(&tok) {
             return self.parse_json_access(expr, operator);
         } else {
             // Can only happen if `get_next_precedence` got out of sync with this function
@@ -1974,9 +1992,15 @@ impl<'a> Parser<'a> {
         }
     }
 
-
-    pub fn parse_json_access(&mut self, base_expr: Expr, operation: JsonOperator) -> Result<Expr, ParserError> {
-        debug!("Entering parse_json_access, expr {:?}, operation {:?}", base_expr, operation);
+    pub fn parse_json_access(
+        &mut self,
+        base_expr: Expr,
+        operation: JsonOperator,
+    ) -> Result<Expr, ParserError> {
+        debug!(
+            "Entering parse_json_access, expr {:?}, operation {:?}",
+            base_expr, operation
+        );
         let access_key = self.parse_prefix()?;
         debug!("access_key {:?}", access_key);
         let mut nested_access = Expr::JsonAccess {
@@ -6705,31 +6729,12 @@ impl<'a> Parser<'a> {
     /// Parse a comma-delimited list of projections after SELECT
     pub fn parse_select_item(&mut self) -> Result<SelectItem, ParserError> {
         match self.parse_wildcard_expr()? {
-            WildcardExpr::Expr(expr) => {
-                let expr: Expr = if self.dialect.supports_filter_during_aggregation()
-                    && self.parse_keyword(Keyword::FILTER)
-                {
-                    let i = self.index - 1;
-                    if self.consume_token(&Token::LParen) && self.parse_keyword(Keyword::WHERE) {
-                        let filter = self.parse_expr()?;
-                        self.expect_token(&Token::RParen)?;
-                        Expr::AggregateExpressionWithFilter {
-                            expr: Box::new(expr),
-                            filter: Box::new(filter),
-                        }
-                    } else {
-                        self.index = i;
-                        expr
-                    }
-                } else {
-                    expr
-                };
-                self.parse_optional_alias(keywords::RESERVED_FOR_COLUMN_ALIAS)
-                    .map(|alias| match alias {
-                        Some(alias) => SelectItem::ExprWithAlias { expr, alias },
-                        None => SelectItem::UnnamedExpr(expr),
-                    })
-            }
+            WildcardExpr::Expr(expr) => self
+                .parse_optional_alias(keywords::RESERVED_FOR_COLUMN_ALIAS)
+                .map(|alias| match alias {
+                    Some(alias) => SelectItem::ExprWithAlias { expr, alias },
+                    None => SelectItem::UnnamedExpr(expr),
+                }),
             WildcardExpr::QualifiedWildcard(prefix) => Ok(SelectItem::QualifiedWildcard(
                 prefix,
                 self.parse_wildcard_additional_options()?,

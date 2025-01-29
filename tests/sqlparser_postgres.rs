@@ -2120,9 +2120,7 @@ fn test_json() {
                 ))),
             }),
             operator: JsonOperator::Arrow,
-            right: Box::new(Expr::Value(Value::SingleQuotedString(
-                "color".to_string()
-            ))),
+            right: Box::new(Expr::Value(Value::SingleQuotedString("color".to_string()))),
         }),
         select.projection[0]
     );
@@ -2134,19 +2132,19 @@ fn test_json() {
         Expr::BinaryOp {
             left: Box::new(Expr::Function(Function {
                 name: ObjectName(vec![Ident::new("text")]),
-                args: vec![FunctionArg::Unnamed(FunctionArgExpr::Expr(Expr::JsonAccess {
-                    left: Box::new(Expr::JsonAccess {
-                        left: Box::new(Expr::Identifier(Ident::new("json"))),
+                args: vec![FunctionArg::Unnamed(FunctionArgExpr::Expr(
+                    Expr::JsonAccess {
+                        left: Box::new(Expr::JsonAccess {
+                            left: Box::new(Expr::Identifier(Ident::new("json"))),
+                            operator: JsonOperator::Arrow,
+                            right: Box::new(Expr::Value(Value::SingleQuotedString(
+                                "b".to_string()
+                            ))),
+                        }),
                         operator: JsonOperator::Arrow,
-                        right: Box::new(Expr::Value(Value::SingleQuotedString(
-                            "b".to_string()
-                        ))),
-                    }),
-                    operator: JsonOperator::Arrow,
-                    right: Box::new(Expr::Value(Value::SingleQuotedString(
-                        "c".to_string()
-                    ))),
-                }))],
+                        right: Box::new(Expr::Value(Value::SingleQuotedString("c".to_string()))),
+                    }
+                ))],
                 over: None,
                 distinct: false,
                 special: false,
@@ -2266,7 +2264,6 @@ fn test_json() {
         select.selection.unwrap(),
     );
 }
-
 
 #[test]
 fn test_composite_value() {
@@ -3495,4 +3492,55 @@ fn parse_create_table_with_alias() {
         }
         _ => unreachable!(),
     }
+}
+
+#[test]
+fn parse_filter_in_aggregate() {
+    let select = pg().verified_only_select(
+        "SELECT COALESCE(SUM(t.amount) FILTER (WHERE amount IS NOT NULL), 0) FROM t",
+    );
+    assert_eq!(
+        &SelectItem::UnnamedExpr(Expr::Function(Function {
+            name: ObjectName(vec!["COALESCE".into()]),
+            args: vec![
+                FunctionArg::Unnamed(FunctionArgExpr::Expr(Expr::AggregateExpressionWithFilter {
+                    expr: Box::new(Expr::Function(Function {
+                        name: ObjectName(vec![Ident {
+                            value: "SUM".into(),
+                            quote_style: None
+                        }]),
+                        args: vec![FunctionArg::Unnamed(FunctionArgExpr::Expr(
+                            Expr::CompoundIdentifier(vec![
+                                Ident {
+                                    value: "t".into(),
+                                    quote_style: None
+                                },
+                                Ident {
+                                    value: "amount".into(),
+                                    quote_style: None
+                                }
+                            ])
+                        ))],
+                        over: None,
+                        distinct: false,
+                        special: false,
+                        order_by: vec![]
+                    })),
+                    filter: Box::new(Expr::IsNotNull(Box::new(Expr::Identifier(Ident {
+                        value: "amount".into(),
+                        quote_style: None
+                    }))))
+                })),
+                FunctionArg::Unnamed(FunctionArgExpr::Expr(Expr::Value(Value::Number(
+                    "0".into(),
+                    false
+                ))))
+            ],
+            over: None,
+            distinct: false,
+            special: false,
+            order_by: vec![]
+        })),
+        &select.projection[0]
+    );
 }
