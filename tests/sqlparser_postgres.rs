@@ -3493,3 +3493,54 @@ fn parse_create_table_with_alias() {
         _ => unreachable!(),
     }
 }
+
+#[test]
+fn parse_filter_in_aggregate() {
+    let select = pg().verified_only_select(
+        "SELECT COALESCE(SUM(t.amount) FILTER (WHERE amount IS NOT NULL), 0) FROM t",
+    );
+    assert_eq!(
+        &SelectItem::UnnamedExpr(Expr::Function(Function {
+            name: ObjectName(vec!["COALESCE".into()]),
+            args: vec![
+                FunctionArg::Unnamed(FunctionArgExpr::Expr(Expr::AggregateExpressionWithFilter {
+                    expr: Box::new(Expr::Function(Function {
+                        name: ObjectName(vec![Ident {
+                            value: "SUM".into(),
+                            quote_style: None
+                        }]),
+                        args: vec![FunctionArg::Unnamed(FunctionArgExpr::Expr(
+                            Expr::CompoundIdentifier(vec![
+                                Ident {
+                                    value: "t".into(),
+                                    quote_style: None
+                                },
+                                Ident {
+                                    value: "amount".into(),
+                                    quote_style: None
+                                }
+                            ])
+                        ))],
+                        over: None,
+                        distinct: false,
+                        special: false,
+                        order_by: vec![]
+                    })),
+                    filter: Box::new(Expr::IsNotNull(Box::new(Expr::Identifier(Ident {
+                        value: "amount".into(),
+                        quote_style: None
+                    }))))
+                })),
+                FunctionArg::Unnamed(FunctionArgExpr::Expr(Expr::Value(Value::Number(
+                    "0".into(),
+                    false
+                ))))
+            ],
+            over: None,
+            distinct: false,
+            special: false,
+            order_by: vec![]
+        })),
+        &select.projection[0]
+    );
+}
