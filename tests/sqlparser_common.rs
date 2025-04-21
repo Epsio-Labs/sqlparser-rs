@@ -1997,6 +1997,16 @@ fn parse_cast() {
         },
         expr_from_projection(only(&select.projection))
     );
+
+    let sql = "SELECT CAST(details AS JSONB) FROM customer";
+    let select = verified_only_select(sql);
+    assert_eq!(
+        &Expr::Cast {
+            expr: Box::new(Expr::Identifier(Ident::new("details"))),
+            data_type: DataType::JSONB,
+        },
+        expr_from_projection(only(&select.projection))
+    );
 }
 
 #[test]

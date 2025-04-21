@@ -184,8 +184,10 @@ pub enum DataType {
     Timestamp(Option<u64>, TimezoneInfo),
     /// Interval
     Interval,
-    /// JSON type used in BigQuery
+    /// JSON type
     JSON,
+    /// Binary JSON type
+    JSONB,
     /// Regclass used in postgresql serial
     Regclass,
     /// Text
@@ -314,6 +316,7 @@ impl fmt::Display for DataType {
             }
             DataType::Interval => write!(f, "INTERVAL"),
             DataType::JSON => write!(f, "JSON"),
+            DataType::JSONB => write!(f, "JSONB"),
             DataType::Regclass => write!(f, "REGCLASS"),
             DataType::Text => write!(f, "TEXT"),
             DataType::String => write!(f, "STRING"),

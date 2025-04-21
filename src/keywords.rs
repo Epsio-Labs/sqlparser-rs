@@ -337,6 +337,7 @@ define_keywords!(
     JAR,
     JOIN,
     JSON,
+    JSONB,
     JSONFILE,
     JULIAN,
     KEY,
