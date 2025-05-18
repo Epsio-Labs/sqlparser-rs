@@ -2149,6 +2149,7 @@ fn test_json() {
                 distinct: false,
                 special: false,
                 order_by: vec![],
+                within_group: vec![],
             })),
             op: BinaryOperator::Eq,
             right: Box::new(Expr::Value(Value::SingleQuotedString("3".to_string()))),
@@ -2318,6 +2319,7 @@ fn test_composite_value() {
                 distinct: false,
                 special: false,
                 order_by: vec![],
+                within_group: vec![],
             }))))
         }),
         select.projection[0]
@@ -2480,6 +2482,7 @@ fn parse_current_functions() {
             distinct: false,
             special: true,
             order_by: vec![],
+            within_group: vec![],
         }),
         expr_from_projection(&select.projection[0])
     );
@@ -2491,6 +2494,7 @@ fn parse_current_functions() {
             distinct: false,
             special: true,
             order_by: vec![],
+            within_group: vec![],
         }),
         expr_from_projection(&select.projection[1])
     );
@@ -2502,6 +2506,7 @@ fn parse_current_functions() {
             distinct: false,
             special: true,
             order_by: vec![],
+            within_group: vec![],
         }),
         expr_from_projection(&select.projection[2])
     );
@@ -2513,6 +2518,7 @@ fn parse_current_functions() {
             distinct: false,
             special: true,
             order_by: vec![],
+            within_group: vec![],
         }),
         expr_from_projection(&select.projection[3])
     );
@@ -2962,6 +2968,7 @@ fn parse_delimited_identifiers() {
             distinct: false,
             special: false,
             order_by: vec![],
+            within_group: vec![],
         }),
         expr_from_projection(&select.projection[1]),
     );
@@ -3524,7 +3531,8 @@ fn parse_filter_in_aggregate() {
                         over: None,
                         distinct: false,
                         special: false,
-                        order_by: vec![]
+                        order_by: vec![],
+                        within_group: vec![],
                     })),
                     filter: Box::new(Expr::IsNotNull(Box::new(Expr::Identifier(Ident {
                         value: "amount".into(),
@@ -3539,7 +3547,8 @@ fn parse_filter_in_aggregate() {
             over: None,
             distinct: false,
             special: false,
-            order_by: vec![]
+            order_by: vec![],
+            within_group: vec![],
         })),
         &select.projection[0]
     );

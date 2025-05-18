@@ -781,6 +781,7 @@ impl<'a> Parser<'a> {
                         distinct: false,
                         special: true,
                         order_by: vec![],
+                        within_group: vec![],
                     }))
                 }
                 Keyword::CURRENT_TIMESTAMP
@@ -967,6 +968,15 @@ impl<'a> Parser<'a> {
         } else {
             None
         };
+        let within_group = if self.parse_keywords(&[Keyword::WITHIN, Keyword::GROUP]) {
+            self.expect_token(&Token::LParen)?;
+            self.expect_keywords(&[Keyword::ORDER, Keyword::BY])?;
+            let order_by = self.parse_comma_separated(Parser::parse_order_by_expr)?;
+            self.expect_token(&Token::RParen)?;
+            order_by
+        } else {
+            vec![]
+        };
         Ok(Expr::Function(Function {
             name,
             args,
@@ -974,6 +984,7 @@ impl<'a> Parser<'a> {
             distinct,
             special: false,
             order_by,
+            within_group,
         }))
     }
 
@@ -991,6 +1002,7 @@ impl<'a> Parser<'a> {
             distinct: false,
             special,
             order_by,
+            within_group: vec![],
         }))
     }
 
