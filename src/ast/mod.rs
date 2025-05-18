@@ -3571,8 +3571,10 @@ pub struct Function {
     // Some functions must be called without trailing parentheses, for example Postgres
     // do it for current_catalog, current_schema, etc. This flags is used for formatting.
     pub special: bool,
-    // Required ordering for the function (if empty, there is no requirement).
+    // Required ordering for the function arguments (if empty, there is no requirement).
     pub order_by: Vec<OrderByExpr>,
+    // Required ordering given a `WITHIN GROUP` clause
+    pub within_group: Vec<OrderByExpr>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
