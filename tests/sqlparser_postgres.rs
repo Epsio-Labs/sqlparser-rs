@@ -307,7 +307,7 @@ fn parse_create_sequence() {
 
     assert!(matches!(
         pg().parse_sql_statements("CREATE SEQUENCE foo INCREMENT 1 NO MINVALUE NO"),
-        Err(ParserError::ParserError(_))
+        Err(ParserError::SpannedParserError(_, _))
     ));
 }
 
@@ -805,7 +805,7 @@ fn parse_alter_table_alter_column_add_generated() {
         "ALTER TABLE t ALTER COLUMN id ADD GENERATED ( INCREMENT 1 MINVALUE 1 )",
     );
     assert_eq!(
-        ParserError::ParserError("Expected: AS, found: (".to_string()),
+        ParserError::SpannedParserError("Expected: AS, found: (".to_string(), Span::empty()),
         res.unwrap_err()
     );
 
@@ -813,14 +813,14 @@ fn parse_alter_table_alter_column_add_generated() {
         "ALTER TABLE t ALTER COLUMN id ADD GENERATED AS IDENTITY ( INCREMENT )",
     );
     assert_eq!(
-        ParserError::ParserError("Expected: a value, found: )".to_string()),
+        ParserError::SpannedParserError("Expected: a value, found: )".to_string(), Span::empty()),
         res.unwrap_err()
     );
 
     let res =
         pg().parse_sql_statements("ALTER TABLE t ALTER COLUMN id ADD GENERATED AS IDENTITY (");
     assert_eq!(
-        ParserError::ParserError("Expected: ), found: EOF".to_string()),
+        ParserError::SpannedParserError("Expected: ), found: EOF".to_string(), Span::empty()),
         res.unwrap_err()
     );
 }
@@ -929,7 +929,10 @@ fn parse_alter_table_owner_to() {
 
     let res = pg().parse_sql_statements("ALTER TABLE tab OWNER TO CREATE FOO");
     assert_eq!(
-        ParserError::ParserError("Expected: end of statement, found: FOO".to_string()),
+        ParserError::SpannedParserError(
+            "Expected: end of statement, found: FOO".to_string(),
+            Span::empty()
+        ),
         res.unwrap_err()
     );
 
@@ -960,25 +963,37 @@ fn parse_create_table_if_not_exists() {
 fn parse_bad_if_not_exists() {
     let res = pg().parse_sql_statements("CREATE TABLE NOT EXISTS uk_cities ()");
     assert_eq!(
-        ParserError::ParserError("Expected: end of statement, found: EXISTS".to_string()),
+        ParserError::SpannedParserError(
+            "Expected: end of statement, found: EXISTS".to_string(),
+            Span::empty()
+        ),
         res.unwrap_err()
     );
 
     let res = pg().parse_sql_statements("CREATE TABLE IF EXISTS uk_cities ()");
     assert_eq!(
-        ParserError::ParserError("Expected: end of statement, found: EXISTS".to_string()),
+        ParserError::SpannedParserError(
+            "Expected: end of statement, found: EXISTS".to_string(),
+            Span::empty()
+        ),
         res.unwrap_err()
     );
 
     let res = pg().parse_sql_statements("CREATE TABLE IF uk_cities ()");
     assert_eq!(
-        ParserError::ParserError("Expected: end of statement, found: uk_cities".to_string()),
+        ParserError::SpannedParserError(
+            "Expected: end of statement, found: uk_cities".to_string(),
+            Span::empty()
+        ),
         res.unwrap_err()
     );
 
     let res = pg().parse_sql_statements("CREATE TABLE IF NOT uk_cities ()");
     assert_eq!(
-        ParserError::ParserError("Expected: end of statement, found: NOT".to_string()),
+        ParserError::SpannedParserError(
+            "Expected: end of statement, found: NOT".to_string(),
+            Span::empty()
+        ),
         res.unwrap_err()
     );
 }
@@ -1533,22 +1548,25 @@ fn parse_set() {
 
     assert_eq!(
         pg_and_generic().parse_sql_statements("SET"),
-        Err(ParserError::ParserError(
-            "Expected: identifier, found: EOF".to_string()
+        Err(ParserError::SpannedParserError(
+            "Expected: identifier, found: EOF".to_string(),
+            Span::empty(),
         )),
     );
 
     assert_eq!(
         pg_and_generic().parse_sql_statements("SET a b"),
-        Err(ParserError::ParserError(
-            "Expected: equals sign or TO, found: b".to_string()
+        Err(ParserError::SpannedParserError(
+            "Expected: equals sign or TO, found: b".to_string(),
+            Span::empty(),
         )),
     );
 
     assert_eq!(
         pg_and_generic().parse_sql_statements("SET a ="),
-        Err(ParserError::ParserError(
-            "Expected: variable value, found: EOF".to_string()
+        Err(ParserError::SpannedParserError(
+            "Expected: variable value, found: EOF".to_string(),
+            Span::empty(),
         )),
     );
 }
@@ -2831,7 +2849,7 @@ fn parse_create_table_with_inherits() {
 fn parse_create_table_with_empty_inherits_fails() {
     assert!(matches!(
         pg().parse_sql_statements("CREATE TABLE child_table (child_column INT) INHERITS ()"),
-        Err(ParserError::ParserError(_))
+        Err(ParserError::SpannedParserError(_, _))
     ));
 }
 
@@ -4775,13 +4793,19 @@ fn parse_drop_procedure() {
 
     let res = pg().parse_sql_statements("DROP PROCEDURE testproc DROP");
     assert_eq!(
-        ParserError::ParserError("Expected: end of statement, found: DROP".to_string()),
+        ParserError::SpannedParserError(
+            "Expected: end of statement, found: DROP".to_string(),
+            Span::empty()
+        ),
         res.unwrap_err()
     );
 
     let res = pg().parse_sql_statements("DROP PROCEDURE testproc SET NULL");
     assert_eq!(
-        ParserError::ParserError("Expected: end of statement, found: SET".to_string()),
+        ParserError::SpannedParserError(
+            "Expected: end of statement, found: SET".to_string(),
+            Span::empty()
+        ),
         res.unwrap_err()
     );
 }
