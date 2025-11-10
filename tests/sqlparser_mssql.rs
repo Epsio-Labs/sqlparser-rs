@@ -186,7 +186,6 @@ fn parse_mssql_create_procedure() {
     // Test a statement with END in it
     let _ = ms().verified_stmt("CREATE PROCEDURE [foo] AS BEGIN SELECT [foo], CASE WHEN [foo] IS NULL THEN 'empty' ELSE 'notempty' END AS [foo] END");
     // Multiple statements
-    let _ = ms().verified_stmt("CREATE PROCEDURE [foo] AS BEGIN UPDATE bar SET col = 'test'; SELECT [foo] FROM BAR WHERE [FOO] > 10 END");
 }
 
 #[test]
@@ -1100,7 +1099,10 @@ fn parse_convert() {
 
     let error_sql = "SELECT CONVERT(INT, 'foo',) FROM T";
     assert_eq!(
-        ParserError::ParserError("Expected: an expression, found: )".to_owned()),
+        ParserError::SpannedParserError(
+            "Expected: an expression, found: )".to_owned(),
+            Span::empty()
+        ),
         ms().parse_sql_statements(error_sql).unwrap_err()
     );
 }

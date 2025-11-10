@@ -32,7 +32,7 @@ use sqlparser::ast::Value::Number;
 use sqlparser::ast::*;
 use sqlparser::dialect::ClickHouseDialect;
 use sqlparser::dialect::GenericDialect;
-use sqlparser::parser::ParserError::ParserError;
+use sqlparser::parser::ParserError;
 
 #[test]
 fn parse_map_access_expr() {
@@ -286,13 +286,19 @@ fn parse_alter_table_attach_and_detach_partition() {
             clickhouse_and_generic()
                 .parse_sql_statements(format!("ALTER TABLE t0 {operation} PARTITION").as_str())
                 .unwrap_err(),
-            ParserError("Expected: an expression, found: EOF".to_string())
+            ParserError::SpannedParserError(
+                "Expected: an expression, found: EOF".to_string(),
+                Span::empty()
+            )
         );
         assert_eq!(
             clickhouse_and_generic()
                 .parse_sql_statements(format!("ALTER TABLE t0 {operation} PART").as_str())
                 .unwrap_err(),
-            ParserError("Expected: an expression, found: EOF".to_string())
+            ParserError::SpannedParserError(
+                "Expected: an expression, found: EOF".to_string(),
+                Span::empty()
+            )
         );
     }
 }
@@ -355,19 +361,22 @@ fn parse_alter_table_add_projection() {
         clickhouse_and_generic()
             .parse_sql_statements("ALTER TABLE t0 ADD PROJECTION my_name")
             .unwrap_err(),
-        ParserError("Expected: (, found: EOF".to_string())
+        ParserError::SpannedParserError("Expected: (, found: EOF".to_string(), Span::empty())
     );
     assert_eq!(
         clickhouse_and_generic()
             .parse_sql_statements("ALTER TABLE t0 ADD PROJECTION my_name ()")
             .unwrap_err(),
-        ParserError("Expected: SELECT, found: )".to_string())
+        ParserError::SpannedParserError("Expected: SELECT, found: )".to_string(), Span::empty())
     );
     assert_eq!(
         clickhouse_and_generic()
             .parse_sql_statements("ALTER TABLE t0 ADD PROJECTION my_name (SELECT)")
             .unwrap_err(),
-        ParserError("Expected: an expression, found: )".to_string())
+        ParserError::SpannedParserError(
+            "Expected: an expression, found: )".to_string(),
+            Span::empty()
+        )
     );
 }
 
@@ -397,7 +406,10 @@ fn parse_alter_table_drop_projection() {
         clickhouse_and_generic()
             .parse_sql_statements("ALTER TABLE t0 DROP PROJECTION")
             .unwrap_err(),
-        ParserError("Expected: identifier, found: EOF".to_string())
+        ParserError::SpannedParserError(
+            "Expected: identifier, found: EOF".to_string(),
+            Span::empty()
+        )
     );
 }
 
@@ -444,7 +456,10 @@ fn parse_alter_table_clear_and_materialize_projection() {
             clickhouse_and_generic()
                 .parse_sql_statements(format!("ALTER TABLE t0 {keyword} PROJECTION",).as_str())
                 .unwrap_err(),
-            ParserError("Expected: identifier, found: EOF".to_string())
+            ParserError::SpannedParserError(
+                "Expected: identifier, found: EOF".to_string(),
+                Span::empty()
+            )
         );
 
         assert_eq!(
@@ -453,7 +468,10 @@ fn parse_alter_table_clear_and_materialize_projection() {
                     format!("ALTER TABLE t0 {keyword} PROJECTION my_name IN PARTITION",).as_str()
                 )
                 .unwrap_err(),
-            ParserError("Expected: identifier, found: EOF".to_string())
+            ParserError::SpannedParserError(
+                "Expected: identifier, found: EOF".to_string(),
+                Span::empty()
+            )
         );
 
         assert_eq!(
@@ -462,7 +480,10 @@ fn parse_alter_table_clear_and_materialize_projection() {
                     format!("ALTER TABLE t0 {keyword} PROJECTION my_name IN",).as_str()
                 )
                 .unwrap_err(),
-            ParserError("Expected: end of statement, found: IN".to_string())
+            ParserError::SpannedParserError(
+                "Expected: end of statement, found: IN".to_string(),
+                Span::empty()
+            )
         );
     }
 }
@@ -510,19 +531,28 @@ fn parse_optimize_table() {
         clickhouse_and_generic()
             .parse_sql_statements("OPTIMIZE TABLE t0 DEDUPLICATE BY")
             .unwrap_err(),
-        ParserError("Expected: an expression, found: EOF".to_string())
+        ParserError::SpannedParserError(
+            "Expected: an expression, found: EOF".to_string(),
+            Span::empty()
+        )
     );
     assert_eq!(
         clickhouse_and_generic()
             .parse_sql_statements("OPTIMIZE TABLE t0 PARTITION")
             .unwrap_err(),
-        ParserError("Expected: an expression, found: EOF".to_string())
+        ParserError::SpannedParserError(
+            "Expected: an expression, found: EOF".to_string(),
+            Span::empty()
+        )
     );
     assert_eq!(
         clickhouse_and_generic()
             .parse_sql_statements("OPTIMIZE TABLE t0 PARTITION ID")
             .unwrap_err(),
-        ParserError("Expected: identifier, found: EOF".to_string())
+        ParserError::SpannedParserError(
+            "Expected: identifier, found: EOF".to_string(),
+            Span::empty()
+        )
     );
 }
 
@@ -1476,7 +1506,10 @@ fn parse_freeze_and_unfreeze_partition() {
             clickhouse_and_generic()
                 .parse_sql_statements(format!("ALTER TABLE t0 {operation_name} PARTITION").as_str())
                 .unwrap_err(),
-            ParserError("Expected: an expression, found: EOF".to_string())
+            ParserError::SpannedParserError(
+                "Expected: an expression, found: EOF".to_string(),
+                Span::empty()
+            )
         );
         assert_eq!(
             clickhouse_and_generic()
@@ -1484,7 +1517,10 @@ fn parse_freeze_and_unfreeze_partition() {
                     format!("ALTER TABLE t0 {operation_name} PARTITION p0 WITH").as_str()
                 )
                 .unwrap_err(),
-            ParserError("Expected: NAME, found: EOF".to_string())
+            ParserError::SpannedParserError(
+                "Expected: NAME, found: EOF".to_string(),
+                Span::empty()
+            )
         );
         assert_eq!(
             clickhouse_and_generic()
@@ -1492,7 +1528,10 @@ fn parse_freeze_and_unfreeze_partition() {
                     format!("ALTER TABLE t0 {operation_name} PARTITION p0 WITH NAME").as_str()
                 )
                 .unwrap_err(),
-            ParserError("Expected: identifier, found: EOF".to_string())
+            ParserError::SpannedParserError(
+                "Expected: identifier, found: EOF".to_string(),
+                Span::empty()
+            )
         );
     }
 }

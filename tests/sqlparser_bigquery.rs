@@ -290,13 +290,13 @@ fn parse_begin() {
         bigquery()
             .parse_sql_statements("BEGIN SELECT 1; SELECT 2 END")
             .unwrap_err(),
-        ParserError::ParserError("Expected: ;, found: END".to_string())
+        ParserError::SpannedParserError("Expected: ;, found: END".to_string(), Span::empty())
     );
     assert_eq!(
         bigquery()
             .parse_sql_statements("BEGIN SELECT 1; EXCEPTION WHEN ERROR THEN SELECT 2 END")
             .unwrap_err(),
-        ParserError::ParserError("Expected: ;, found: END".to_string())
+        ParserError::SpannedParserError("Expected: ;, found: END".to_string(), Span::empty())
     );
 }
 
@@ -1918,7 +1918,7 @@ fn parse_merge_invalid_statements() {
     ] {
         let res = dialects.parse_sql_statements(sql);
         assert_eq!(
-            ParserError::ParserError(err_msg.to_string()),
+            ParserError::SpannedParserError(err_msg.to_string(), Span::empty()),
             res.unwrap_err()
         );
     }
@@ -2042,13 +2042,19 @@ fn parse_big_query_declare() {
 
     let error_sql = "DECLARE x";
     assert_eq!(
-        ParserError::ParserError("Expected: a data type name, found: EOF".to_owned()),
+        ParserError::SpannedParserError(
+            "Expected: a data type name, found: EOF".to_owned(),
+            Span::empty()
+        ),
         bigquery().parse_sql_statements(error_sql).unwrap_err()
     );
 
     let error_sql = "DECLARE x 42";
     assert_eq!(
-        ParserError::ParserError("Expected: a data type name, found: 42".to_owned()),
+        ParserError::SpannedParserError(
+            "Expected: a data type name, found: 42".to_owned(),
+            Span::empty()
+        ),
         bigquery().parse_sql_statements(error_sql).unwrap_err()
     );
 }
@@ -2251,7 +2257,7 @@ fn test_bigquery_create_function() {
     ];
     for (sql, error) in error_sqls {
         assert_eq!(
-            ParserError::ParserError(error.to_owned()),
+            ParserError::SpannedParserError(error.to_owned(), Span::empty()),
             bigquery().parse_sql_statements(sql).unwrap_err()
         );
     }
@@ -2281,7 +2287,7 @@ fn test_bigquery_trim() {
     // missing comma separation
     let error_sql = "SELECT TRIM('xyz' 'a')";
     assert_eq!(
-        ParserError::ParserError("Expected: ), found: 'a'".to_owned()),
+        ParserError::SpannedParserError("Expected: ), found: 'a'".to_owned(), Span::empty()),
         bigquery().parse_sql_statements(error_sql).unwrap_err()
     );
 }
